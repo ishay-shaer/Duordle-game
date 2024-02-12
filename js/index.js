@@ -28,8 +28,8 @@
 const originalHtml = document.documentElement.outerHTML;
 const wordLength = 5;
 const MAXGUESSES = wordLength + 2;
-const shortFilePath = `/possible_magic_words_${wordLength}_letters.txt`;
-const longFilePath = "/five_letter_guesses.txt";
+const shortFilePath = `text/possible_magic_words_${wordLength}_letters.txt`;
+const longFilePath = "text/five_letter_guesses.txt";
 const QWERTY = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 let stopErrorDisplay; // Used for timeout in the displayErrorMessage function.
 
