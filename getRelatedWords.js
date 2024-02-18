@@ -1,4 +1,4 @@
-const dataFilePath = "../data/data_5_letters.json";
+const dataFilePath = "data_5_letters.json";
 
 export default async function getRandomRelatedWords() {
     const response = await fetch(dataFilePath);
