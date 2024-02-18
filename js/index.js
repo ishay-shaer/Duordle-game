@@ -25,7 +25,7 @@
 
 "use strict";
 
-import getRandomRelatedWords from "../getRelatedWords.js";
+import getRandomRelatedWords from "https://raw.githubusercontent.com/ishay-shaer/Duordle-game/main/getRelatedWords.js";
 
 
 const originalHtml = document.documentElement.outerHTML;
