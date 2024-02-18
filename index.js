@@ -25,7 +25,7 @@
 
 "use strict";
 
-import getRandomRelatedWords from "getRelatedWords.js";
+import getRandomRelatedWords from "/getRelatedWords.js";
 
 
 const originalHtml = document.documentElement.outerHTML;
