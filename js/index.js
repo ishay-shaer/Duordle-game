@@ -11,42 +11,43 @@
 // TODO (DONE) Fix box CSS transitions to be cool only when the guess is correct.
 // TODO (DONE) Show results from localStorage as statistics in the message box.
 // TODO (DONE) Make the use of "" or '' consistent
+// TODO (DONE BUT UNUSED) Download Plotly and use the file directly in the HTML head.
 
-
+// TODO Plot it
+// TODO Arrange all or most addEventListener's in one function
 // TODO Add an icon to the title
 // TODO Create welcome message and display it in the message box.
 // TODO Add magic word if not exist into the guesses file instead of each game into the array.
 // TODO Every time a game is played, add magic words to an array in localStorage of max size 50? to avoid them in following games.
 // TODO Create a "Loading..." message (with some animation?) that will show while fetching word from WordsAPI
 // TODO Make available in 4, 5 or 6-letter words and let user choose on welcome screen.
+// TODO Add confetti effect when game has been won.
 
 "use strict";
 
-// import getSynonyms from "/getSynonyms.js";
+import getRandomRelatedWords from "/utils/getRelatedWords.js";
 
 
 const originalHtml = document.documentElement.outerHTML;
 const wordLength = 5;
 const MAXGUESSES = wordLength + 2;
-const shortFilePath = `text/possible_magic_words_${wordLength}_letters.txt`;
-const longFilePath = "text/five_letter_guesses.txt";
+const shortFilePath = `/possible_magic_words_${wordLength}_letters.txt`;
+const longFilePath = "/five_letter_guesses.txt";
 const QWERTY = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 let stopErrorDisplay; // Used for timeout in the displayErrorMessage function.
 
-const possibleGuesses = [];
-const possibleMagicWords = [];
+let possibleGuesses = [];
+let possibleMagicWords = [];
 
 
 class Game{
-    constructor(word_0, word_1, possibleGuesses, possibleMagicWords) {
+    constructor(word_0, word_1) {
         this.state = {
             hasWon: false,
             hasLost: false,
             isActive: true,
         }
-        // this.possibleGuesses = possibleGuesses;
-        // this.possibleMagicWords = possibleMagicWords;
-        this.magicWords = [word_0, word_1];
+        this.gameMagicWords = [word_0, word_1];
         this.boards = [new Board(0, word_0), new Board(1, word_1)];
         this.charPosCol = 0;
         this.charPosRow = 0;
@@ -56,7 +57,6 @@ class Game{
         this.lastGuess = "";
         window.addEventListener("keydown", (e) => {this.keyboardHandler(e)});
 
-        const contrastBtn = document.querySelector("#contrast-btn");
         this.createScreenKeyboard();
     }
 
@@ -65,25 +65,10 @@ class Game{
     // so it doesn't need to fetch the files every time a new game begins.
     // (Promise needs to be handled properly because it's an async process)
 
-    static async createGame(possibleGuesses, possibleMagicWords) {
-        const word_0 = getRandomElFromArray(possibleMagicWords).toUpperCase();
-
-        // For a fake game use:
-        const word_1 = getRandomElFromArray(possibleMagicWords).toUpperCase();
-
-        // For a real game use the next 4 lines:
-        // const synonyms = await getSynonyms(word_0);
-        // if (!synonyms.length) return null;
-
-        // const word_1 = getRandomElFromArray(synonyms).toUpperCase();
-
-        // We don't want words that are almost the same.
-        if (getAlphaSimilarity(word_0, word_1) >= wordLength - 1) return null;
-
-        // Add retrieved words to the possibleGuesses array and remove duplicates.
-        possibleGuesses = [...new Set([...possibleGuesses, word_0, word_1])];
-
-        return new Game(word_0, word_1, possibleGuesses, possibleMagicWords);
+    static async createGame() {
+        const gameMagicWords = await getRandomRelatedWords();
+        possibleGuesses = [...new Set([...possibleGuesses, ...gameMagicWords])];
+        return new Game(...gameMagicWords);
     }
 
     // refactor?
@@ -210,8 +195,8 @@ class Game{
     }
 
     displayStyleByValidity(isValid) {
-        const charPosRow = [document.querySelector(`#row-0-${this.charPosRow}`),
-                            document.querySelector(`#row-1-${this.charPosRow}`)];    
+        const charPosRow = [document.querySelector(`#board-row-0-${this.charPosRow}`),
+                            document.querySelector(`#board-row-1-${this.charPosRow}`)];    
         charPosRow.forEach(row => {
             if (isValid){
                 row.classList.remove("invalid-word");
@@ -338,9 +323,9 @@ class Game{
             message = `<h1 id="win-header">You win!</h1>
                 You got it right at guess ${this.guesses.length} out of ${MAXGUESSES}<br>`;
         } else {
-            const magicWords = this.boards.map((board) => board.magicWord);
+            const gameMagicWords = this.boards.map((board) => board.magicWord);
             message = `Better luck next time! <br>
-                The words were ${magicWords[0]} and ${magicWords[1]}<br>`;
+                The words were ${gameMagicWords[0]} and ${gameMagicWords[1]}<br>`;
         }
         
         message += "<h2>Your statistics:</h2>" + this.getGameStats();
@@ -371,25 +356,6 @@ class Game{
 
         return `<div id="stats">${statsMessage}</div>`;
     }
-
-    // statsPlotDiv() {
-    //     const chartDiv = document.createElement("div");
-    //     chartDiv.id = "chart-div";
-    //     document.querySelector("#dynamic-message").appendChild(chartDiv);
-
-    //     const storedResults = JSON.parse(localStorage.getItem("gameResults"));
-    //     const data = [
-    //         {
-    //             x: Object.values(storedResults),
-    //             y: Object.keys(storedResults),
-    //             type: "bar",
-    //             orientation: "h"
-    //         }
-    //     ];
-    //     console.log(JSON.stringify(data));
-
-    //     Plotly.newPlot("chart-div", data, {responsive: true});
-    // }
 
 }
 
@@ -451,9 +417,6 @@ class Board{
         for (let i=0; i<wordLength; i++) {
             const currentLetter = guess[i];
 
-            // Initialize this.keyboardUpdater[currentLetter] to an empty array if doesn't exist.
-            // this.keyboardUpdater[currentLetter] = this.keyboardUpdater[currentLetter] || [];
-
             if (currentLetter === this.magicWord[i]){
                 this.lastMatch[i] = "perfect";                
                 letterCounter[currentLetter] -= 1;                
@@ -483,14 +446,14 @@ class Board{
     }
 
     applyWinCssTransition() {
-        const lastRowEl = document.querySelector(`#row-${this.side}-${this.charPosRow - 1}`);
+        const lastRowEl = document.querySelector(`#board-row-${this.side}-${this.charPosRow - 1}`);
         lastRowEl.style.transition += "background-color 1s ease, transform 1s ease";
     }
 
     displayStyleByMatch() {
         if (!this.state.isActive) return;
 
-        const currentRowEl = document.querySelector(`#row-${this.side}-${this.charPosRow - 1}`);
+        const currentRowEl = document.querySelector(`#board-row-${this.side}-${this.charPosRow - 1}`);
         const boxesOfCurrentRow = currentRowEl.querySelectorAll("*");
         boxesOfCurrentRow.forEach((box, position) => {
             box.classList.add(this.lastMatch[position]);
@@ -523,7 +486,7 @@ function createBoxes(boardSide){
     let boardContent = "";
 
     for (let row=0; row<MAXGUESSES; row++){
-        boardContent += `<div class="row" id="row-${boardSide}-${row}">`;
+        boardContent += `<div class="board-row" id="board-row-${boardSide}-${row}">`;
         for (let column=0; column<wordLength; column++){
             boardContent += `<span class="box" id="box-${boardSide}-${row}-${column}"></span>`;
         }
@@ -590,20 +553,17 @@ function getAlphaSimilarity(word_0, word_1) {
 
 async function main() {
     if (!possibleGuesses.length) {
-        possibleGuesses.push(...await getWordsFromTextFile(longFilePath));
+        possibleGuesses = await getWordsFromTextFile(longFilePath);
     }
 
     if (!possibleMagicWords.length) {
-        possibleMagicWords.push(...await getWordsFromTextFile(shortFilePath));
+        possibleMagicWords = await getWordsFromTextFile(shortFilePath);
     }
     
     try {
-        
-        const game = await Game.createGame(possibleGuesses, possibleMagicWords);
-
-        // Temporary to avoid using WordsAPI. Switch to previous line for a real game.
-        // const game = new Game(getRandomElFromArray(possibleGuesses).toUpperCase(), getRandomElFromArray(possibleGuesses).toUpperCase());
+        const game = await Game.createGame();
         if (!game) main();
+
         console.log(game.boards[0].magicWord);
         console.log(game.boards[1].magicWord);
     } catch (error) {
